@@ -24,7 +24,7 @@ leaguesRouter.post("/join/:inviteCode", async (req, res) => {
   res.status(201).json(member);
 });
 
-// Clasificación de la liga (suma simple de puntos, ejemplo simplificado)
+// Clasificación de la liga: suma los puntos de todas las jornadas de cada participante
 leaguesRouter.get("/:leagueId/standings", async (req, res) => {
   const league = await prisma.league.findUnique({
     where: { id: req.params.leagueId },
@@ -32,7 +32,35 @@ leaguesRouter.get("/:leagueId/standings", async (req, res) => {
   });
   if (!league) return res.status(404).json({ error: "Liga no encontrada" });
 
-  // Aquí conectarías con la suma real de fantasyPoints por jornada;
-  // se deja como TODO para que lo completes según tu lógica de temporada.
-  res.json({ league: league.name, members: league.members.map((m) => m.user.name) });
+  const standings = await Promise.all(
+    league.members.map(async (member) => {
+      const team = member.user.teams[0];
+      if (!team) return { userId: member.userId, name: member.user.name, totalPoints: 0 };
+
+      const lineups = await prisma.lineup.findMany({
+        where: { userTeamId: team.id },
+        include: { players: { where: { isStarting: true }, include: { player: true } } },
+      });
+
+      let totalPoints = 0;
+      for (const lineup of lineups) {
+        const stats = await prisma.playerGameweekStat.findMany({
+          where: {
+            gameweekId: lineup.gameweekId,
+            playerId: { in: lineup.players.map((p) => p.playerId) },
+          },
+        });
+        for (const slot of lineup.players) {
+          const stat = stats.find((s) => s.playerId === slot.playerId);
+          if (!stat) continue;
+          totalPoints += stat.fantasyPoints * (slot.isCaptain ? 2 : 1);
+        }
+      }
+
+      return { userId: member.userId, name: member.user.name, totalPoints };
+    })
+  );
+
+  standings.sort((a, b) => b.totalPoints - a.totalPoints);
+  res.json({ league: league.name, standings });
 });

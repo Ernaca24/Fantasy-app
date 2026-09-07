@@ -44,20 +44,7 @@ teamsRouter.post("/:teamId/players", async (req, res) => {
   res.status(201).json(added);
 });
 
-// Marcar capitán
-teamsRouter.patch("/:teamId/captain/:userTeamPlayerId", async (req, res) => {
-  const { teamId, userTeamPlayerId } = req.params;
-
-  await prisma.userTeamPlayer.updateMany({
-    where: { userTeamId: teamId },
-    data: { isCaptain: false },
-  });
-  const updated = await prisma.userTeamPlayer.update({
-    where: { id: userTeamPlayerId },
-    data: { isCaptain: true },
-  });
-  res.json(updated);
-});
+// El capitán ahora se elige por jornada en /lineups (el "Once"), no aquí
 
 // Ver plantilla completa con puntos totales de la última jornada
 teamsRouter.get("/:teamId", async (req, res) => {

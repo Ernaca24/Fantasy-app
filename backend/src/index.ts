@@ -4,6 +4,9 @@ import cors from "cors";
 import { playersRouter } from "./routes/players.js";
 import { teamsRouter } from "./routes/teams.js";
 import { leaguesRouter } from "./routes/leagues.js";
+import { marketRouter } from "./routes/market.js";
+import { matchesRouter } from "./routes/matches.js";
+import { lineupsRouter } from "./routes/lineups.js";
 
 const app = express();
 app.use(cors());
@@ -16,6 +19,9 @@ app.get("/", (_req, res) => {
 app.use("/players", playersRouter);
 app.use("/teams", teamsRouter);
 app.use("/leagues", leaguesRouter);
+app.use("/market", marketRouter);
+app.use("/matches", matchesRouter);
+app.use("/lineups", lineupsRouter);
 
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
 app.listen(port, () => {
