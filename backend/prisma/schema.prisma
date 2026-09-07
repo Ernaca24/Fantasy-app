@@ -14,24 +14,49 @@ enum Position {
   FWD
 }
 
-// Club ficticio o real, sin escudo/logo oficial: solo nombre, ciudad, color
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+}
+
+enum ListingStatus {
+  AVAILABLE
+  PENDING_SELLER
+  SOLD
+  EXPIRED
+  CANCELLED
+}
+
+enum BidStatus {
+  PENDING
+  WINNING
+  OUTBID
+  ACCEPTED
+  REJECTED
+}
+
 model Club {
   id      String   @id @default(cuid())
   name    String
   city    String?
-  color   String?  // color primario para la UI, evita usar escudos con copyright
+  color   String?
   players Player[]
+  homeMatches Match[] @relation("HomeClub")
+  awayMatches Match[] @relation("AwayClub")
 }
 
 model Player {
   id         String   @id @default(cuid())
   name       String
   position   Position
-  price      Float // coste en presupuesto fantasy (ej. 6.5)
+  price      Float
   clubId     String
   club       Club     @relation(fields: [clubId], references: [id])
   stats      PlayerGameweekStat[]
   userTeamPlayers UserTeamPlayer[]
+  lineupSlots LineupPlayer[]
+  listings   MarketListing[]
 }
 
 model Gameweek {
@@ -39,11 +64,27 @@ model Gameweek {
   number    Int      @unique
   startsAt  DateTime
   endsAt    DateTime
-  isClosed  Boolean  @default(false) // true cuando ya no se puede fichar/alinear
+  isClosed  Boolean  @default(false)
   stats     PlayerGameweekStat[]
+  matches   Match[]
+  lineups   Lineup[]
 }
 
-// Estadísticas reales (o de prueba) de un jugador en una jornada concreta
+model Match {
+  id         String      @id @default(cuid())
+  gameweekId String
+  gameweek   Gameweek    @relation(fields: [gameweekId], references: [id])
+  homeClubId String
+  homeClub   Club        @relation("HomeClub", fields: [homeClubId], references: [id])
+  awayClubId String
+  awayClub   Club        @relation("AwayClub", fields: [awayClubId], references: [id])
+  kickoff    DateTime
+  status     MatchStatus @default(SCHEDULED)
+  homeScore  Int         @default(0)
+  awayScore  Int         @default(0)
+  minute     Int?
+}
+
 model PlayerGameweekStat {
   id          String   @id @default(cuid())
   playerId    String
@@ -59,7 +100,7 @@ model PlayerGameweekStat {
   ownGoals     Int     @default(0)
   penaltiesSaved Int   @default(0)
   penaltiesMissed Int  @default(0)
-  fantasyPoints Int    @default(0) // calculado por services/scoring.ts
+  fantasyPoints Int    @default(0)
 
   @@unique([playerId, gameweekId])
 }
@@ -70,15 +111,19 @@ model User {
   name      String
   teams     UserTeam[]
   leagues   LeagueMember[]
+  listings  MarketListing[] @relation("Seller")
+  bids      Bid[]
+  purchases Operation[] @relation("Buyer")
+  sales     Operation[] @relation("Seller")
 }
 
-// La plantilla que arma un usuario para una jornada/temporada
 model UserTeam {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id])
   budget      Float    @default(100)
   players     UserTeamPlayer[]
+  lineups     Lineup[]
   createdAt   DateTime @default(now())
 }
 
@@ -88,11 +133,30 @@ model UserTeamPlayer {
   userTeam   UserTeam @relation(fields: [userTeamId], references: [id])
   playerId   String
   player     Player   @relation(fields: [playerId], references: [id])
-  isCaptain  Boolean  @default(false) // puntos x2 típico del captain
-  isStarting Boolean  @default(true)  // titular vs banquillo
+  acquiredAt DateTime @default(now())
 }
 
-// Liga privada entre amigos
+model Lineup {
+  id         String   @id @default(cuid())
+  userTeamId String
+  userTeam   UserTeam @relation(fields: [userTeamId], references: [id])
+  gameweekId String
+  gameweek   Gameweek @relation(fields: [gameweekId], references: [id])
+  players    LineupPlayer[]
+
+  @@unique([userTeamId, gameweekId])
+}
+
+model LineupPlayer {
+  id         String  @id @default(cuid())
+  lineupId   String
+  lineup     Lineup  @relation(fields: [lineupId], references: [id])
+  playerId   String
+  player     Player  @relation(fields: [playerId], references: [id])
+  isCaptain  Boolean @default(false)
+  isStarting Boolean @default(true)
+}
+
 model League {
   id        String   @id @default(cuid())
   name      String
@@ -108,4 +172,42 @@ model LeagueMember {
   user      User     @relation(fields: [userId], references: [id])
 
   @@unique([leagueId, userId])
+}
+
+model MarketListing {
+  id         String        @id @default(cuid())
+  playerId   String
+  player     Player        @relation(fields: [playerId], references: [id])
+  sellerId   String?
+  seller     User?         @relation("Seller", fields: [sellerId], references: [id])
+  askingPrice Float
+  status     ListingStatus @default(AVAILABLE)
+  listedAt   DateTime      @default(now())
+  expiresAt  DateTime?
+  bids       Bid[]
+  operation  Operation?
+}
+
+model Bid {
+  id         String        @id @default(cuid())
+  listingId  String
+  listing    MarketListing @relation(fields: [listingId], references: [id])
+  bidderId   String
+  bidder     User          @relation(fields: [bidderId], references: [id])
+  amount     Float
+  status     BidStatus     @default(PENDING)
+  createdAt  DateTime      @default(now())
+}
+
+model Operation {
+  id          String   @id @default(cuid())
+  listingId   String   @unique
+  listing     MarketListing @relation(fields: [listingId], references: [id])
+  playerId    String
+  buyerId     String
+  buyer       User     @relation("Buyer", fields: [buyerId], references: [id])
+  sellerId    String?
+  seller      User?    @relation("Seller", fields: [sellerId], references: [id])
+  price       Float
+  closedAt    DateTime @default(now())
 }
