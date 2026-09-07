@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Position {
+  GK
+  DEF
+  MID
+  FWD
+}
+
+// Club ficticio o real, sin escudo/logo oficial: solo nombre, ciudad, color
+model Club {
+  id      String   @id @default(cuid())
+  name    String
+  city    String?
+  color   String?  // color primario para la UI, evita usar escudos con copyright
+  players Player[]
+}
+
+model Player {
+  id         String   @id @default(cuid())
+  name       String
+  position   Position
+  price      Float // coste en presupuesto fantasy (ej. 6.5)
+  clubId     String
+  club       Club     @relation(fields: [clubId], references: [id])
+  stats      PlayerGameweekStat[]
+  userTeamPlayers UserTeamPlayer[]
+}
+
+model Gameweek {
+  id        String   @id @default(cuid())
+  number    Int      @unique
+  startsAt  DateTime
+  endsAt    DateTime
+  isClosed  Boolean  @default(false) // true cuando ya no se puede fichar/alinear
+  stats     PlayerGameweekStat[]
+}
+
+// Estadísticas reales (o de prueba) de un jugador en una jornada concreta
+model PlayerGameweekStat {
+  id          String   @id @default(cuid())
+  playerId    String
+  player      Player   @relation(fields: [playerId], references: [id])
+  gameweekId  String
+  gameweek    Gameweek @relation(fields: [gameweekId], references: [id])
+  minutesPlayed Int    @default(0)
+  goals        Int     @default(0)
+  assists      Int     @default(0)
+  cleanSheet   Boolean @default(false)
+  yellowCards  Int     @default(0)
+  redCards     Int     @default(0)
+  ownGoals     Int     @default(0)
+  penaltiesSaved Int   @default(0)
+  penaltiesMissed Int  @default(0)
+  fantasyPoints Int    @default(0) // calculado por services/scoring.ts
+
+  @@unique([playerId, gameweekId])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  teams     UserTeam[]
+  leagues   LeagueMember[]
+}
+
+// La plantilla que arma un usuario para una jornada/temporada
+model UserTeam {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  budget      Float    @default(100)
+  players     UserTeamPlayer[]
+  createdAt   DateTime @default(now())
+}
+
+model UserTeamPlayer {
+  id         String   @id @default(cuid())
+  userTeamId String
+  userTeam   UserTeam @relation(fields: [userTeamId], references: [id])
+  playerId   String
+  player     Player   @relation(fields: [playerId], references: [id])
+  isCaptain  Boolean  @default(false) // puntos x2 típico del captain
+  isStarting Boolean  @default(true)  // titular vs banquillo
+}
+
+// Liga privada entre amigos
+model League {
+  id        String   @id @default(cuid())
+  name      String
+  inviteCode String  @unique @default(cuid())
+  members   LeagueMember[]
+}
+
+model LeagueMember {
+  id        String   @id @default(cuid())
+  leagueId  String
+  league    League   @relation(fields: [leagueId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([leagueId, userId])
+}
