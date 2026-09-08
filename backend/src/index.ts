@@ -7,6 +7,7 @@ import { leaguesRouter } from "./routes/leagues.js";
 import { marketRouter } from "./routes/market.js";
 import { matchesRouter } from "./routes/matches.js";
 import { lineupsRouter } from "./routes/lineups.js";
+import { authRouter } from "./routes/auth.js";
 
 const app = express();
 app.use(cors());
@@ -22,6 +23,7 @@ app.use("/leagues", leaguesRouter);
 app.use("/market", marketRouter);
 app.use("/matches", matchesRouter);
 app.use("/lineups", lineupsRouter);
+app.use("/auth", authRouter);
 
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
 app.listen(port, () => {
