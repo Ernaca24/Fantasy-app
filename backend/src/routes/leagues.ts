@@ -3,6 +3,15 @@ import { prisma } from "../db.js";
 
 export const leaguesRouter = Router();
 
+// Ligas a las que pertenece un usuario (para "Mis Fantasys")
+leaguesRouter.get("/mine/:userId", async (req, res) => {
+  const memberships = await prisma.leagueMember.findMany({
+    where: { userId: req.params.userId },
+    include: { league: true },
+  });
+  res.json(memberships.map((m) => m.league));
+});
+
 // Crear liga privada
 leaguesRouter.post("/", async (req, res) => {
   const { name, userId } = req.body;
