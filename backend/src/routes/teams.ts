@@ -50,7 +50,7 @@ teamsRouter.post("/:teamId/players", async (req, res) => {
 teamsRouter.get("/:teamId", async (req, res) => {
   const team = await prisma.userTeam.findUnique({
     where: { id: req.params.teamId },
-    include: { players: { include: { player: true } } },
+    include: { players: { include: { player: { include: { club: true } } } } },
   });
   if (!team) return res.status(404).json({ error: "Plantilla no encontrada" });
   res.json(team);
