@@ -1,9 +1,15 @@
 import { Link, Outlet } from "react-router-dom";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
+import { useCurrentUser } from "./lib/CurrentUserContext";
+import WelcomeReveal from "./components/WelcomeReveal";
 
 export default function App() {
+  const { starterSquad, clearStarterSquad } = useCurrentUser();
+
   return (
     <div className="min-h-screen bg-slate-50">
+      {starterSquad && <WelcomeReveal players={starterSquad} onDone={clearStarterSquad} />}
+
       <header className="bg-primary text-white px-4 py-3 flex items-center gap-6 flex-wrap justify-between">
         <div className="flex items-center gap-6 flex-wrap">
           <span className="font-bold text-lg">MiFantasy</span>

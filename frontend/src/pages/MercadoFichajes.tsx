@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, MarketListing } from "../lib/api";
-import { useCurrentUser } from "../lib/useCurrentUser";
+import { useCurrentUser } from "../lib/CurrentUserContext";
 
 type Tab = "mercado" | "operaciones" | "historico";
 

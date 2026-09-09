@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, Match } from "../lib/api";
-import { useCurrentUser } from "../lib/useCurrentUser";
+import { useCurrentUser } from "../lib/CurrentUserContext";
 
 function MatchRow({ match }: { match: Match }) {
   const live = match.status === "LIVE";

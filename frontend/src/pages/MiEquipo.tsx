@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, Player } from "../lib/api";
-import { useCurrentUser } from "../lib/useCurrentUser";
+import { useCurrentUser } from "../lib/CurrentUserContext";
 import PlayerCard from "../components/PlayerCard";
 
 type Tab = "once" | "plantilla" | "puntos";
