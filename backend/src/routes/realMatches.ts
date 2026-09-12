@@ -14,9 +14,8 @@ realMatchesRouter.get("/", async (_req, res) => {
     if (!response.ok) throw new Error(`openfootball devolvió HTTP ${response.status}`);
     const data = await response.json();
 
-    // Nos quedamos con los partidos más recientes (jugados o por jugar) para
-    // no mandar la temporada entera al frontend de golpe
-    const now = new Date();
+    // Mandamos la temporada completa (todas las jornadas), ordenada por fecha,
+    // para poder navegar por J1, J2, J3... sin límite de días.
     const matches = data.matches
       .map((m: any) => ({
         round: m.round,
@@ -25,11 +24,7 @@ realMatchesRouter.get("/", async (_req, res) => {
         team2: m.team2,
         score: m.score?.ft ?? null, // [golesLocal, golesVisitante] o null si aún no se jugó
       }))
-      .filter((m: any) => {
-        const matchDate = new Date(m.date);
-        const diffDays = Math.abs((matchDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        return diffDays <= 10; // solo partidos de +/- 10 días respecto a hoy
-      });
+      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     res.json({ competition: data.name, matches });
   } catch (err: any) {
