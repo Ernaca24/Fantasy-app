@@ -15,7 +15,7 @@ export default function App() {
           <span className="font-bold text-lg">XI</span>
           <SignedIn>
             <nav className="flex gap-4 text-sm flex-wrap">
-              <Link to="/" className="hover:text-accent">Mis XI</Link>
+              <Link to="/" className="hover:text-accent">Mis Ligas</Link>
               <Link to="/mi-equipo" className="hover:text-accent">Mi Equipo</Link>
               <Link to="/mercado" className="hover:text-accent">Mercado de Fichajes</Link>
               <Link to="/actividad" className="hover:text-accent">Actividad del Mercado</Link>
