@@ -15,10 +15,16 @@ function MatchRow({ match }: { match: RealMatch }) {
         <span className="flex-1">{match.team2}</span>
       </div>
       <p className="text-center text-xs text-slate-400 mt-0.5">
-        {match.round} · {new Date(match.date).toLocaleDateString("es-ES")}
+        {new Date(match.date).toLocaleDateString("es-ES")}
       </p>
     </div>
   );
+}
+
+// Extrae el número de jornada de un texto tipo "Matchday 4" -> 4
+function roundNumber(round: string): number {
+  const match = round.match(/\d+/);
+  return match ? parseInt(match[0], 10) : 0;
 }
 
 export default function MisFantasys() {
@@ -28,6 +34,7 @@ export default function MisFantasys() {
   const [competition, setCompetition] = useState("");
   const [matchesError, setMatchesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedRound, setSelectedRound] = useState<string | null>(null);
 
   useEffect(() => {
     if (userId) api.getMyLeagues(userId).then(setLeagues).catch((e) => setError(e.message));
@@ -39,6 +46,23 @@ export default function MisFantasys() {
       })
       .catch((e) => setMatchesError(e.message));
   }, [userId]);
+
+  // Agrupamos los partidos por jornada (round)
+  const roundsSet = new Set(matches.map((m) => m.round));
+  const rounds = Array.from(roundsSet).sort((a, b) => roundNumber(a) - roundNumber(b));
+
+  // Si no hay jornada seleccionada, seleccionamos por defecto la primera
+  // jornada que tenga algún partido sin jugar (la "jornada actual"),
+  // o si todas están jugadas, la última.
+  const defaultRound = (() => {
+    const withPending = rounds.find((r) =>
+      matches.some((m) => m.round === r && m.score === null)
+    );
+    return withPending || rounds[rounds.length - 1] || null;
+  })();
+
+  const activeRound = selectedRound ?? defaultRound;
+  const matchesForActiveRound = matches.filter((m) => m.round === activeRound);
 
   return (
     <div className="grid md:grid-cols-3 gap-6">
@@ -69,12 +93,37 @@ export default function MisFantasys() {
 
       <div>
         <h2 className="font-semibold mb-2">{competition || "Partidos reales"}</h2>
+
+        {/* Pestañas de jornadas */}
+        {rounds.length > 0 && (
+          <div className="flex gap-1 overflow-x-auto pb-2 mb-2">
+            {rounds.map((r) => {
+              const num = roundNumber(r);
+              const isActive = r === activeRound;
+              return (
+                <button
+                  key={r}
+                  onClick={() => setSelectedRound(r)}
+                  className={
+                    "shrink-0 px-3 py-1 rounded-full text-xs font-medium border transition " +
+                    (isActive
+                      ? "bg-primary text-white border-primary"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-primary")
+                  }
+                >
+                  J{num || r}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <div className="border rounded-xl p-3 bg-white shadow-sm">
           {matchesError && <p className="text-sm text-red-600">{matchesError}</p>}
           {!matchesError && matches.length === 0 && (
             <p className="text-sm text-slate-500">Sin partidos cerca de hoy.</p>
           )}
-          {matches.map((m, i) => (
+          {matchesForActiveRound.map((m, i) => (
             <MatchRow key={i} match={m} />
           ))}
         </div>
