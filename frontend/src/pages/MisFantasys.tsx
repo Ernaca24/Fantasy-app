@@ -67,7 +67,7 @@ export default function MisFantasys() {
   return (
     <div className="grid md:grid-cols-3 gap-6">
       <div className="md:col-span-2">
-        <h1 className="text-xl font-bold mb-3">Mis Fantasys</h1>
+        <h1 className="text-xl font-bold mb-3">Mis Ligas</h1>
         {!userId && (
           <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
             Inicia sesión para ver tus ligas.
