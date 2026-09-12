@@ -1,18 +1,22 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, Match } from "../lib/api";
+import { api, RealMatch } from "../lib/api";
 import { useCurrentUser } from "../lib/CurrentUserContext";
 
-function MatchRow({ match }: { match: Match }) {
-  const live = match.status === "LIVE";
+function MatchRow({ match }: { match: RealMatch }) {
+  const played = match.score !== null;
   return (
-    <div className="flex items-center justify-between py-2 border-b last:border-0 text-sm">
-      <span className="flex-1 text-right">{match.homeClub.name}</span>
-      <span className={`mx-3 px-2 py-0.5 rounded font-bold ${live ? "bg-red-500 text-white" : "bg-slate-100"}`}>
-        {match.status === "SCHEDULED" ? "vs" : `${match.homeScore} - ${match.awayScore}`}
-      </span>
-      <span className="flex-1">{match.awayClub.name}</span>
-      {live && <span className="ml-2 text-xs text-red-600 font-semibold">{match.minute}'</span>}
+    <div className="py-2 border-b last:border-0 text-sm">
+      <div className="flex items-center justify-between">
+        <span className="flex-1 text-right">{match.team1}</span>
+        <span className="mx-3 px-2 py-0.5 rounded font-bold bg-slate-100">
+          {played ? `${match.score![0]} - ${match.score![1]}` : "vs"}
+        </span>
+        <span className="flex-1">{match.team2}</span>
+      </div>
+      <p className="text-center text-xs text-slate-400 mt-0.5">
+        {match.round} · {new Date(match.date).toLocaleDateString("es-ES")}
+      </p>
     </div>
   );
 }
@@ -20,21 +24,21 @@ function MatchRow({ match }: { match: Match }) {
 export default function MisFantasys() {
   const { userId } = useCurrentUser();
   const [leagues, setLeagues] = useState<any[]>([]);
-  const [matches, setMatches] = useState<Match[]>([]);
+  const [matches, setMatches] = useState<RealMatch[]>([]);
+  const [competition, setCompetition] = useState("");
+  const [matchesError, setMatchesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (userId) api.getMyLeagues(userId).then(setLeagues).catch((e) => setError(e.message));
-    api.getMatches().then(setMatches).catch(() => {});
+    api
+      .getRealMatches()
+      .then((data) => {
+        setCompetition(data.competition);
+        setMatches(data.matches);
+      })
+      .catch((e) => setMatchesError(e.message));
   }, [userId]);
-
-  // Refresca los marcadores en vivo cada 30s
-  useEffect(() => {
-    const interval = setInterval(() => {
-      api.getMatches().then(setMatches).catch(() => {});
-    }, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="grid md:grid-cols-3 gap-6">
@@ -42,7 +46,7 @@ export default function MisFantasys() {
         <h1 className="text-xl font-bold mb-3">Mis Fantasys</h1>
         {!userId && (
           <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
-            No tienes un usuario de prueba configurado. Ve a la página de configuración temporal para crear uno.
+            Inicia sesión para ver tus ligas.
           </p>
         )}
         {error && <p className="text-red-600 text-sm">{error}</p>}
@@ -64,11 +68,14 @@ export default function MisFantasys() {
       </div>
 
       <div>
-        <h2 className="font-semibold mb-2">Partidos de la jornada</h2>
+        <h2 className="font-semibold mb-2">{competition || "Partidos reales"}</h2>
         <div className="border rounded-xl p-3 bg-white shadow-sm">
-          {matches.length === 0 && <p className="text-sm text-slate-500">Sin partidos programados.</p>}
-          {matches.map((m) => (
-            <MatchRow key={m.id} match={m} />
+          {matchesError && <p className="text-sm text-red-600">{matchesError}</p>}
+          {!matchesError && matches.length === 0 && (
+            <p className="text-sm text-slate-500">Sin partidos cerca de hoy.</p>
+          )}
+          {matches.map((m, i) => (
+            <MatchRow key={i} match={m} />
           ))}
         </div>
       </div>

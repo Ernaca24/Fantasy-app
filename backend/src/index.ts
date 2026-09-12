@@ -8,6 +8,7 @@ import { marketRouter } from "./routes/market.js";
 import { matchesRouter } from "./routes/matches.js";
 import { lineupsRouter } from "./routes/lineups.js";
 import { authRouter } from "./routes/auth.js";
+import { realMatchesRouter } from "./routes/realMatches.js";
 
 const app = express();
 app.use(cors());
@@ -24,6 +25,7 @@ app.use("/market", marketRouter);
 app.use("/matches", matchesRouter);
 app.use("/lineups", lineupsRouter);
 app.use("/auth", authRouter);
+app.use("/real-matches", realMatchesRouter);
 
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
 app.listen(port, () => {

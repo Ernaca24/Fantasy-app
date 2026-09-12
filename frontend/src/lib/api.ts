@@ -46,6 +46,14 @@ export interface StandingRow {
   totalPoints: number;
 }
 
+export interface RealMatch {
+  round: string;
+  date: string;
+  team1: string;
+  team2: string;
+  score: [number, number] | null;
+}
+
 export const api = {
   // Jugadores / plantilla
   getPlayers: (params?: { position?: string; clubId?: string }) => {
@@ -71,6 +79,8 @@ export const api = {
   // Partidos en vivo
   getMatches: (gameweekId?: string) =>
     request<Match[]>(`/matches${gameweekId ? `?gameweekId=${gameweekId}` : ""}`),
+  getRealMatches: () =>
+    request<{ competition: string; matches: RealMatch[] }>(`/real-matches`),
 
   // Once / Puntos
   getLineup: (userTeamId: string, gameweekId: string) =>
