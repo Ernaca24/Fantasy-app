@@ -8,7 +8,8 @@ export const authRouter = Router();
 const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY! });
 
 // Se llama justo después de iniciar sesión: crea el usuario (y su plantilla) si es
-// la primera vez -- y en ese caso, le reparte al azar su plantilla inicial de bienvenida.
+// la primera vez, o si el usuario existe pero se quedó sin equipo -- y en ese caso,
+// le reparte al azar su plantilla inicial de bienvenida.
 authRouter.post("/sync", requireAuth, async (req: AuthedRequest, res) => {
   const clerkUserId = req.clerkUserId!;
 
@@ -38,9 +39,22 @@ authRouter.post("/sync", requireAuth, async (req: AuthedRequest, res) => {
     });
 
     isNewTeam = true;
-    starterSquad = await assignStarterSquad(user.teams[0].id);
+  } else if (user.teams.length === 0) {
+    // El usuario ya existía pero se quedó sin equipo (p. ej. tras reimportar jugadores reales)
+    await prisma.userTeam.create({
+      data: { userId: user.id, budget: 100 },
+    });
+    user = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: { teams: true },
+    });
+    isNewTeam = true;
   }
 
-  const team = user.teams[0];
-  res.json({ userId: user.id, teamId: team?.id ?? null, name: user.name, isNewTeam, starterSquad });
+  const team = user!.teams[0];
+  if (isNewTeam && team) {
+    starterSquad = await assignStarterSquad(team.id);
+  }
+
+  res.json({ userId: user!.id, teamId: team?.id ?? null, name: user!.name, isNewTeam, starterSquad });
 });
